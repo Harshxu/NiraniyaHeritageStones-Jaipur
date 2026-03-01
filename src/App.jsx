@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
 
-const DEVOTIONAL_TRACK_ID = 'eU1r_QOkX-I'
+const DEVOTIONAL_TRACK_SRC = '/devotional-track.mp3'
 
 const products = [
   {
@@ -114,15 +114,10 @@ function createInquiryMessage(customer, cartItems, subtotal) {
   ].join('\n')
 }
 
-function buildYouTubeAudioSrc(videoId) {
-  return `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1&iv_load_policy=3`
-}
-
 function App() {
   const [cart, setCart] = useState({})
   const [customer, setCustomer] = useState(initialCustomer)
   const [soundEnabled, setSoundEnabled] = useState(true)
-  const [audioFrameLoaded, setAudioFrameLoaded] = useState(false)
   const [introReady, setIntroReady] = useState(false)
   const [isSendingInquiry, setIsSendingInquiry] = useState(false)
   const [statusPopup, setStatusPopup] = useState({
@@ -131,8 +126,29 @@ function App() {
     message: '',
     isSuccess: true,
   })
-  const audioFrameRef = useRef(null)
-  const unmuteAttemptRef = useRef(0)
+  const audioElementRef = useRef(null)
+
+  useEffect(() => {
+    // Defensive cleanup: if an old deployment injected Tawk, remove it and silence widget sounds.
+    const tawkScripts = document.querySelectorAll('script[src*="embed.tawk.to"]')
+    const tawkIframes = document.querySelectorAll('iframe[src*="tawk.to"]')
+    const tawkContainers = document.querySelectorAll('[id*="tawk"], [class*="tawk"]')
+
+    tawkScripts.forEach((node) => node.remove())
+    tawkIframes.forEach((node) => node.remove())
+    tawkContainers.forEach((node) => node.remove())
+
+    if (window.Tawk_API && typeof window.Tawk_API.shutdown === 'function') {
+      try {
+        window.Tawk_API.shutdown()
+      } catch (_error) {
+        // Ignore third-party cleanup failures.
+      }
+    }
+
+    delete window.Tawk_API
+    delete window.Tawk_LoadStart
+  }, [])
 
   useEffect(() => {
     let rafOne = 0
@@ -151,73 +167,73 @@ function App() {
     }
   }, [])
 
-  const devotionalTrackSrc = useMemo(
-    () => (soundEnabled ? buildYouTubeAudioSrc(DEVOTIONAL_TRACK_ID) : ''),
-    [soundEnabled],
-  )
-
   useEffect(() => {
-    if (!soundEnabled) {
-      setAudioFrameLoaded(false)
-      unmuteAttemptRef.current = 0
+    const audio = audioElementRef.current
+    if (!audio) {
       return undefined
     }
 
-    const pushYouTubeCommand = (command, args = []) => {
-      const frameWindow = audioFrameRef.current?.contentWindow
-      if (!frameWindow) return
-      frameWindow.postMessage(
-        JSON.stringify({
-          event: 'command',
-          func: command,
-          args,
-        }),
-        '*',
-      )
+    if (!soundEnabled) {
+      audio.pause()
+      return undefined
     }
 
-    const tryStartDevotionalAudio = () => {
-      pushYouTubeCommand('playVideo')
-      pushYouTubeCommand('unMute')
-      pushYouTubeCommand('setVolume', [35])
+    audio.loop = true
+    audio.volume = 0.35
+    audio.muted = true
+
+    const playSilently = async () => {
+      try {
+        await audio.play()
+      } catch (_error) {
+        // Browser can block autoplay until user interaction.
+      }
     }
 
-    const onFirstInteraction = () => {
-      tryStartDevotionalAudio()
+    const playWithSound = async () => {
+      audio.muted = false
+      try {
+        await audio.play()
+      } catch (_error) {
+        // Keep retrying on future interactions.
+      }
+    }
+
+    const onInteraction = () => {
+      playWithSound()
     }
 
     const onVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        tryStartDevotionalAudio()
+        playSilently()
       }
     }
 
-    if (audioFrameLoaded) {
-      tryStartDevotionalAudio()
-    }
+    playSilently()
 
+    let attempts = 0
     const intervalId = window.setInterval(() => {
-      if (unmuteAttemptRef.current >= 28) {
+      if (attempts >= 20) {
         window.clearInterval(intervalId)
         return
       }
-      unmuteAttemptRef.current += 1
-      tryStartDevotionalAudio()
-    }, 1200)
+      attempts += 1
+      playSilently()
+    }, 1500)
 
-    window.addEventListener('pointerdown', onFirstInteraction, { passive: true })
-    window.addEventListener('keydown', onFirstInteraction)
-    window.addEventListener('touchstart', onFirstInteraction, { passive: true })
+    window.addEventListener('pointerdown', onInteraction, { passive: true })
+    window.addEventListener('keydown', onInteraction)
+    window.addEventListener('touchstart', onInteraction, { passive: true })
     document.addEventListener('visibilitychange', onVisibilityChange)
 
     return () => {
       window.clearInterval(intervalId)
-      window.removeEventListener('pointerdown', onFirstInteraction)
-      window.removeEventListener('keydown', onFirstInteraction)
-      window.removeEventListener('touchstart', onFirstInteraction)
+      window.removeEventListener('pointerdown', onInteraction)
+      window.removeEventListener('keydown', onInteraction)
+      window.removeEventListener('touchstart', onInteraction)
       document.removeEventListener('visibilitychange', onVisibilityChange)
     }
-  }, [soundEnabled, devotionalTrackSrc, audioFrameLoaded])
+  }, [soundEnabled])
 
   const cartItems = useMemo(
     () =>
@@ -387,22 +403,15 @@ function App() {
         </button>
       </header>
 
-      {devotionalTrackSrc && (
-        <div className="youtube-audio" aria-hidden="true">
-          <iframe
-            ref={audioFrameRef}
-            title="Background devotional music"
-            src={devotionalTrackSrc}
-            onLoad={() => {
-              unmuteAttemptRef.current = 0
-              setAudioFrameLoaded(true)
-            }}
-            allow="autoplay; encrypted-media; picture-in-picture"
-            referrerPolicy="strict-origin-when-cross-origin"
-            tabIndex="-1"
-          />
+      <div className="devotional-audio" aria-hidden="true">
+        <audio
+          ref={audioElementRef}
+          src={DEVOTIONAL_TRACK_SRC}
+          preload="metadata"
+          loop
+          playsInline
+        />
         </div>
-      )}
 
       <main>
         <section className="hero hero-entrance">
