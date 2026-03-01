@@ -274,7 +274,7 @@ main {
   color: #fff9f0;
 }
 
-.youtube-audio {
+.devotional-audio {
   position: fixed;
   width: 1px;
   height: 1px;
@@ -284,7 +284,7 @@ main {
   z-index: -1;
 }
 
-.youtube-audio iframe {
+.devotional-audio audio {
   width: 1px;
   height: 1px;
   border: 0;
