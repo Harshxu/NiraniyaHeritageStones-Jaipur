@@ -9,6 +9,7 @@ const app = express()
 const PORT = Number(process.env.API_PORT || 8787)
 
 const OWNER_EMAIL = process.env.OWNER_EMAIL || 'harshkumawat9950@gmail.com'
+const CORS_ORIGIN = String(process.env.CORS_ORIGIN || '*').trim() || '*'
 
 const SMTP_USER = String(process.env.SMTP_USER || '').trim()
 const SMTP_PASS = String(process.env.SMTP_PASS || '').trim()
@@ -18,6 +19,15 @@ const SMTP_SECURE = String(process.env.SMTP_SECURE || 'false') === 'true'
 const SMTP_FROM = process.env.SMTP_FROM || SMTP_USER
 
 app.use(express.json({ limit: '1mb' }))
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', CORS_ORIGIN)
+  res.header('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
+  res.header('Access-Control-Allow-Headers', 'Content-Type')
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(204)
+  }
+  return next()
+})
 
 function formatInquiryMessage(payload) {
   const lines = payload.items.map(
