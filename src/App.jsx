@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
 
 const DEVOTIONAL_TRACK_SRC = '/devotional-track.mp3'
+const API_BASE_URL = String(import.meta.env.VITE_API_BASE_URL || '').trim().replace(/\/+$/, '')
+const INQUIRY_API_URL = API_BASE_URL ? `${API_BASE_URL}/api/inquiries` : '/api/inquiries'
 
 const products = [
   {
@@ -151,6 +153,12 @@ function App() {
   }, [])
 
   useEffect(() => {
+    const isCompactViewport = window.matchMedia('(max-width: 820px)').matches
+    if (isCompactViewport) {
+      setIntroReady(true)
+      return undefined
+    }
+
     let rafOne = 0
     let rafTwo = 0
 
@@ -353,7 +361,7 @@ function App() {
 
     try {
       setIsSendingInquiry(true)
-      const response = await fetch('/api/inquiries', {
+      const response = await fetch(INQUIRY_API_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -364,7 +372,10 @@ function App() {
       const result = await response.json().catch(() => ({}))
 
       if (!response.ok || !result.ok) {
-        throw new Error(result.message || 'Failed to send inquiry.')
+        if (response.status === 404 && !API_BASE_URL) {
+          throw new Error('Inquiry API not found on this domain. Set VITE_API_BASE_URL to your backend URL.')
+        }
+        throw new Error(result.message || `Failed to send inquiry. (HTTP ${response.status})`)
       }
 
       showStatusPopup(
