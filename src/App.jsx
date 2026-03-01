@@ -4,6 +4,8 @@ import './App.css'
 const DEVOTIONAL_TRACK_SRC = '/devotional-track.mp3'
 const API_BASE_URL = String(import.meta.env.VITE_API_BASE_URL || '').trim().replace(/\/+$/, '')
 const INQUIRY_API_URL = API_BASE_URL ? `${API_BASE_URL}/api/inquiries` : '/api/inquiries'
+const OWNER_EMAIL = String(import.meta.env.VITE_OWNER_EMAIL || 'harshkumawat9950@gmail.com').trim()
+const FORM_SUBMIT_FALLBACK_URL = `https://formsubmit.co/ajax/${encodeURIComponent(OWNER_EMAIL)}`
 
 const products = [
   {
@@ -335,6 +337,39 @@ function App() {
     }))
   }
 
+  const sendInquiryViaFallback = async (payload) => {
+    const response = await fetch(FORM_SUBMIT_FALLBACK_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify({
+        _subject: `New Inquiry: ${payload.customer.name} (${payload.customer.phone})`,
+        _captcha: 'false',
+        _template: 'table',
+        name: payload.customer.name,
+        phone: payload.customer.phone,
+        city: payload.customer.city || 'Not provided',
+        notes: payload.customer.notes || 'None',
+        total_estimate: inr.format(payload.subtotal),
+        selected_items: payload.items
+          .map(
+            (item) =>
+              `${item.name} x${item.quantity} (${item.category} | ${item.stone} | ${item.size}) = ${inr.format(item.lineTotal)}`,
+          )
+          .join('\n'),
+        inquiry_message: payload.messagePreview,
+      }),
+    })
+
+    const result = await response.json().catch(() => ({}))
+    if (!response.ok || result.success !== 'true') {
+      const description = result?.message || `Fallback send failed (HTTP ${response.status}).`
+      throw new Error(description)
+    }
+  }
+
   const sendInquiry = async () => {
     if (!canSendInquiry || isSendingInquiry) return
 
@@ -361,32 +396,54 @@ function App() {
 
     try {
       setIsSendingInquiry(true)
-      const response = await fetch(INQUIRY_API_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      })
+      let delivered = false
+      let lastError = ''
 
-      const result = await response.json().catch(() => ({}))
+      try {
+        const response = await fetch(INQUIRY_API_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        })
 
-      if (!response.ok || !result.ok) {
-        if (response.status === 404 && !API_BASE_URL) {
-          throw new Error('Inquiry API not found on this domain. Set VITE_API_BASE_URL to your backend URL.')
+        const result = await response.json().catch(() => ({}))
+        if (!response.ok || !result.ok) {
+          throw new Error(result.message || `Failed to send inquiry. (HTTP ${response.status})`)
         }
-        throw new Error(result.message || `Failed to send inquiry. (HTTP ${response.status})`)
+
+        delivered = true
+        showStatusPopup(
+          'Inquiry Sent Successfully',
+          result.message || 'Your inquiry has been raised through email. We will contact you shortly.',
+          true,
+        )
+      } catch (apiError) {
+        lastError = String(apiError?.message || '')
       }
 
-      showStatusPopup(
-        'Inquiry Sent Successfully',
-        result.message || 'Your inquiry has been raised through email. We will contact you shortly.',
-        true,
-      )
+      if (!delivered) {
+        try {
+          await sendInquiryViaFallback(payload)
+          delivered = true
+          showStatusPopup(
+            'Inquiry Sent Successfully',
+            'Your inquiry has been raised through email. We will contact you shortly.',
+            true,
+          )
+        } catch (fallbackError) {
+          lastError = String(fallbackError?.message || lastError || 'Failed to send inquiry.')
+        }
+      }
+
+      if (!delivered) {
+        throw new Error(lastError || 'Failed to send inquiry.')
+      }
     } catch (error) {
       const message = String(error?.message || '')
       if (message.toLowerCase().includes('failed to fetch')) {
-        showStatusPopup('Unable To Send Inquiry', 'Inquiry API is not running. Start app using "npm run dev" and try again.', false)
+        showStatusPopup('Unable To Send Inquiry', 'Unable to connect to inquiry services right now. Please try again.', false)
       } else {
         showStatusPopup('Unable To Send Inquiry', message || 'Unable to send inquiry right now. Please try again.', false)
       }
