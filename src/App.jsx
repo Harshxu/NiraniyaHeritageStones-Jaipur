@@ -122,6 +122,7 @@ function App() {
   const [cart, setCart] = useState({})
   const [customer, setCustomer] = useState(initialCustomer)
   const [soundEnabled, setSoundEnabled] = useState(true)
+  const [audioFrameLoaded, setAudioFrameLoaded] = useState(false)
   const [introReady, setIntroReady] = useState(false)
   const [isSendingInquiry, setIsSendingInquiry] = useState(false)
   const [statusPopup, setStatusPopup] = useState({
@@ -131,7 +132,7 @@ function App() {
     isSuccess: true,
   })
   const audioFrameRef = useRef(null)
-  const hasUnmutedRef = useRef(false)
+  const unmuteAttemptRef = useRef(0)
 
   useEffect(() => {
     let rafOne = 0
@@ -157,7 +158,8 @@ function App() {
 
   useEffect(() => {
     if (!soundEnabled) {
-      hasUnmutedRef.current = false
+      setAudioFrameLoaded(false)
+      unmuteAttemptRef.current = 0
       return undefined
     }
 
@@ -174,24 +176,48 @@ function App() {
       )
     }
 
-    const tryUnmuteWithoutReload = () => {
-      if (hasUnmutedRef.current) return
-      hasUnmutedRef.current = true
+    const tryStartDevotionalAudio = () => {
       pushYouTubeCommand('playVideo')
       pushYouTubeCommand('unMute')
       pushYouTubeCommand('setVolume', [35])
     }
 
-    const timerOne = window.setTimeout(tryUnmuteWithoutReload, 900)
-    const timerTwo = window.setTimeout(tryUnmuteWithoutReload, 1800)
-    window.addEventListener('pointerdown', tryUnmuteWithoutReload, { once: true, passive: true })
+    const onFirstInteraction = () => {
+      tryStartDevotionalAudio()
+    }
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        tryStartDevotionalAudio()
+      }
+    }
+
+    if (audioFrameLoaded) {
+      tryStartDevotionalAudio()
+    }
+
+    const intervalId = window.setInterval(() => {
+      if (unmuteAttemptRef.current >= 28) {
+        window.clearInterval(intervalId)
+        return
+      }
+      unmuteAttemptRef.current += 1
+      tryStartDevotionalAudio()
+    }, 1200)
+
+    window.addEventListener('pointerdown', onFirstInteraction, { passive: true })
+    window.addEventListener('keydown', onFirstInteraction)
+    window.addEventListener('touchstart', onFirstInteraction, { passive: true })
+    document.addEventListener('visibilitychange', onVisibilityChange)
 
     return () => {
-      window.clearTimeout(timerOne)
-      window.clearTimeout(timerTwo)
-      window.removeEventListener('pointerdown', tryUnmuteWithoutReload)
+      window.clearInterval(intervalId)
+      window.removeEventListener('pointerdown', onFirstInteraction)
+      window.removeEventListener('keydown', onFirstInteraction)
+      window.removeEventListener('touchstart', onFirstInteraction)
+      document.removeEventListener('visibilitychange', onVisibilityChange)
     }
-  }, [soundEnabled, devotionalTrackSrc])
+  }, [soundEnabled, devotionalTrackSrc, audioFrameLoaded])
 
   const cartItems = useMemo(
     () =>
@@ -367,6 +393,10 @@ function App() {
             ref={audioFrameRef}
             title="Background devotional music"
             src={devotionalTrackSrc}
+            onLoad={() => {
+              unmuteAttemptRef.current = 0
+              setAudioFrameLoaded(true)
+            }}
             allow="autoplay; encrypted-media; picture-in-picture"
             referrerPolicy="strict-origin-when-cross-origin"
             tabIndex="-1"
