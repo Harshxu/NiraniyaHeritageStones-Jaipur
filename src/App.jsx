@@ -175,62 +175,61 @@ function App() {
 
     if (!soundEnabled) {
       audio.pause()
+      audio.muted = true
       return undefined
     }
 
     audio.loop = true
     audio.volume = 0.35
-    audio.muted = true
+    audio.preload = 'auto'
 
-    const playSilently = async () => {
+    const playMuted = async () => {
+      audio.muted = true
       try {
         await audio.play()
       } catch (_error) {
-        // Browser can block autoplay until user interaction.
+        // Some browsers may block all autoplay attempts.
       }
     }
 
-    const playWithSound = async () => {
+    const playAudible = async () => {
       audio.muted = false
       try {
         await audio.play()
+        return true
       } catch (_error) {
-        // Keep retrying on future interactions.
+        return false
       }
     }
 
-    const onInteraction = () => {
-      playWithSound()
+    const startPlayback = async () => {
+      const audibleStarted = await playAudible()
+      if (!audibleStarted) {
+        await playMuted()
+      }
     }
 
     const onVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        playSilently()
+        void startPlayback()
       }
     }
 
-    playSilently()
+    void startPlayback()
 
-    let attempts = 0
-    const intervalId = window.setInterval(() => {
-      if (attempts >= 20) {
-        window.clearInterval(intervalId)
-        return
+    let retryAttempts = 0
+    const retryIntervalId = window.setInterval(async () => {
+      retryAttempts += 1
+      const audibleStarted = await playAudible()
+      if (audibleStarted || retryAttempts >= 15) {
+        window.clearInterval(retryIntervalId)
       }
-      attempts += 1
-      playSilently()
-    }, 1500)
+    }, 2000)
 
-    window.addEventListener('pointerdown', onInteraction, { passive: true })
-    window.addEventListener('keydown', onInteraction)
-    window.addEventListener('touchstart', onInteraction, { passive: true })
     document.addEventListener('visibilitychange', onVisibilityChange)
 
     return () => {
-      window.clearInterval(intervalId)
-      window.removeEventListener('pointerdown', onInteraction)
-      window.removeEventListener('keydown', onInteraction)
-      window.removeEventListener('touchstart', onInteraction)
+      window.clearInterval(retryIntervalId)
       document.removeEventListener('visibilitychange', onVisibilityChange)
     }
   }, [soundEnabled])
@@ -407,7 +406,8 @@ function App() {
         <audio
           ref={audioElementRef}
           src={DEVOTIONAL_TRACK_SRC}
-          preload="metadata"
+          preload="auto"
+          autoPlay
           loop
           playsInline
         />
