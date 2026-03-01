@@ -1145,6 +1145,38 @@ main {
     border-radius: 24px;
     align-items: flex-start;
     flex-direction: column;
+    position: relative;
+    top: 0;
+    backdrop-filter: none;
+    background: rgba(255, 247, 228, 0.96);
+  }
+}
+
+@media (max-width: 820px) {
+  .app {
+    animation: backgroundDrift 24s ease-in-out infinite alternate;
+  }
+
+  .live-wallpaper::after,
+  .live-wallpaper .blend-wave {
+    display: none;
+  }
+
+  .live-wallpaper::before {
+    opacity: 0.5;
+    filter: blur(12px);
+    animation: wallpaperPulse 16s ease-in-out infinite;
+  }
+
+  .wallpaper-orb {
+    opacity: 0.42;
+    filter: blur(14px);
+  }
+
+  .orb-one,
+  .orb-two,
+  .orb-three {
+    animation-duration: 24s;
   }
 }
 

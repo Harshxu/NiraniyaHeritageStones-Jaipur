@@ -209,6 +209,14 @@ function App() {
       }
     }
 
+    const onFirstGesture = () => {
+      void playAudible()
+    }
+
+    const onCanPlay = () => {
+      void startPlayback()
+    }
+
     const onVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         void startPlayback()
@@ -226,10 +234,18 @@ function App() {
       }
     }, 2000)
 
+    audio.addEventListener('canplay', onCanPlay)
+    window.addEventListener('pointerdown', onFirstGesture, { once: true, passive: true })
+    window.addEventListener('touchstart', onFirstGesture, { once: true, passive: true })
+    window.addEventListener('keydown', onFirstGesture, { once: true })
     document.addEventListener('visibilitychange', onVisibilityChange)
 
     return () => {
       window.clearInterval(retryIntervalId)
+      audio.removeEventListener('canplay', onCanPlay)
+      window.removeEventListener('pointerdown', onFirstGesture)
+      window.removeEventListener('touchstart', onFirstGesture)
+      window.removeEventListener('keydown', onFirstGesture)
       document.removeEventListener('visibilitychange', onVisibilityChange)
     }
   }, [soundEnabled])
