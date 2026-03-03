@@ -10,8 +10,10 @@ const offsetByDirection = {
 function BlurText({
   text,
   delay = 200,
+  startDelay = 0,
   animateBy = 'words',
   direction = 'top',
+  forceAnimation = false,
   onAnimationComplete,
   className = '',
   unitClassName = '',
@@ -24,39 +26,46 @@ function BlurText({
     return animateBy === 'letters' ? Array.from(text) : text.trim().split(/\s+/)
   }, [animateBy, text])
   const [isVisible, setIsVisible] = useState(false)
+  const startAnimationTimeoutRef = useRef(0)
   const animationCompleteTimeoutRef = useRef(0)
   const revealRafIdRef = useRef(0)
   const normalizedDelay = Math.max(0, Number(delay) || 0)
+  const normalizedStartDelay = Math.max(0, Number(startDelay) || 0)
   const prefersReducedMotion =
     typeof window !== 'undefined' &&
     typeof window.matchMedia === 'function' &&
     window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  const skipMotion = prefersReducedMotion && !forceAnimation
 
   useEffect(() => {
+    window.clearTimeout(startAnimationTimeoutRef.current)
     window.clearTimeout(animationCompleteTimeoutRef.current)
     window.cancelAnimationFrame(revealRafIdRef.current)
-    setIsVisible(prefersReducedMotion)
+    setIsVisible(skipMotion)
 
-    if (!prefersReducedMotion) {
-      revealRafIdRef.current = window.requestAnimationFrame(() => {
-        setIsVisible(true)
-      })
+    if (!skipMotion) {
+      startAnimationTimeoutRef.current = window.setTimeout(() => {
+        revealRafIdRef.current = window.requestAnimationFrame(() => {
+          setIsVisible(true)
+        })
+      }, normalizedStartDelay)
     }
 
     if (typeof onAnimationComplete === 'function') {
-      const totalAnimationMs = prefersReducedMotion
-        ? 0
-        : normalizedDelay * Math.max(0, units.length - 1) + 460
+      const totalAnimationMs = skipMotion
+        ? normalizedStartDelay
+        : normalizedStartDelay + normalizedDelay * Math.max(0, units.length - 1) + 460
       animationCompleteTimeoutRef.current = window.setTimeout(() => {
         onAnimationComplete()
       }, totalAnimationMs)
     }
 
     return () => {
+      window.clearTimeout(startAnimationTimeoutRef.current)
       window.clearTimeout(animationCompleteTimeoutRef.current)
       window.cancelAnimationFrame(revealRafIdRef.current)
     }
-  }, [normalizedDelay, onAnimationComplete, prefersReducedMotion, units.length])
+  }, [normalizedDelay, normalizedStartDelay, onAnimationComplete, skipMotion, units.length])
 
   if (!text) {
     return null
@@ -81,10 +90,10 @@ function BlurText({
               opacity: isVisible ? 1 : 0,
               filter: isVisible ? 'blur(0px)' : 'blur(12px)',
               transform: isVisible ? 'translate3d(0, 0, 0)' : hiddenTransform,
-              transition: prefersReducedMotion
+              transition: skipMotion
                 ? 'none'
                 : 'opacity 460ms ease, filter 460ms ease, transform 460ms ease',
-              transitionDelay: prefersReducedMotion ? '0ms' : `${normalizedDelay * index}ms`,
+              transitionDelay: skipMotion ? '0ms' : `${normalizedDelay * index}ms`,
             }}
           >
             {content}
