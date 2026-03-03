@@ -26,6 +26,98 @@
   animation: backgroundDrift 16s ease-in-out infinite alternate;
 }
 
+.silk-background {
+  position: fixed;
+  inset: 0;
+  display: block;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.silk-background > div {
+  width: 100vw !important;
+  height: 100vh !important;
+}
+
+.silk-background canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.site-shell {
+  position: relative;
+  z-index: 2;
+  transition: filter 620ms ease, opacity 620ms ease;
+}
+
+.site-shell-blur {
+  filter: blur(12px);
+  opacity: 0.36;
+  pointer-events: none;
+  user-select: none;
+}
+
+.intro-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  background: rgba(6, 6, 8, 0.22);
+  backdrop-filter: blur(0px);
+  opacity: 1;
+  transition:
+    opacity 700ms ease,
+    backdrop-filter 700ms ease,
+    background-color 700ms ease;
+}
+
+.intro-screen-exit {
+  opacity: 0;
+  backdrop-filter: blur(16px);
+  background: rgba(6, 6, 8, 0.02);
+  pointer-events: none;
+}
+
+.intro-content {
+  display: grid;
+  justify-items: center;
+  text-align: center;
+  gap: 0.85rem;
+  padding: 1.2rem;
+  animation: introReveal 620ms ease-out both;
+}
+
+.intro-logo {
+  width: clamp(102px, 13vw, 160px);
+  height: clamp(102px, 13vw, 160px);
+  object-fit: contain;
+  filter:
+    sepia(1)
+    saturate(4)
+    hue-rotate(356deg)
+    brightness(1.02)
+    contrast(1.12)
+    drop-shadow(0 8px 22px rgba(15, 10, 5, 0.54));
+}
+
+.intro-title {
+  margin: 0;
+  font-size: clamp(2rem, 5.2vw, 4rem);
+  line-height: 1.05;
+  letter-spacing: 0.02em;
+  color: #f8edd8;
+  text-shadow: 0 8px 28px rgba(0, 0, 0, 0.62);
+}
+
+.intro-subtitle {
+  margin: 0;
+  color: #e4cfad;
+  font-size: clamp(0.94rem, 1.9vw, 1.2rem);
+  letter-spacing: 0.03em;
+  text-shadow: 0 4px 16px rgba(0, 0, 0, 0.48);
+}
+
 .live-wallpaper {
   position: fixed;
   inset: -18% -14%;
@@ -143,7 +235,16 @@
   animation: breathe 10s ease-in-out infinite reverse;
 }
 
-.topbar,
+.topbar {
+  width: max-content;
+  max-width: calc(100% - 1rem);
+  margin: 0;
+  margin-left: 0.35rem;
+  margin-right: 0;
+  position: relative;
+  z-index: 2;
+}
+
 main {
   width: min(1160px, calc(100% - 2rem));
   margin: 0 auto;
@@ -153,31 +254,51 @@ main {
 
 .topbar {
   position: sticky;
-  top: 0.75rem;
+  top: 0.28rem;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  background: rgba(255, 247, 228, 0.84);
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  margin-top: 1.25rem;
-  padding: 0.55rem 0.85rem;
-  backdrop-filter: blur(7px);
+  justify-content: flex-start;
+  gap: 0.5rem;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  margin-top: 0.04rem;
+  padding: 0.04rem 0.12rem;
+  backdrop-filter: none;
+  isolation: isolate;
+  box-shadow: none;
+}
+
+.topbar::before {
+  content: none;
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.topbar > * {
+  position: relative;
+  z-index: 1;
 }
 
 .brand {
   display: flex;
   align-items: center;
-  gap: 0.95rem;
+  gap: 0.46rem;
 }
 
 .brand-logo {
-  width: 92px;
-  height: 92px;
+  width: 52px;
+  height: 52px;
   display: grid;
   place-items: center;
   flex: 0 0 auto;
+}
+
+.brand > div {
+  max-width: min(72vw, 500px);
 }
 
 .brand-logo img {
@@ -185,6 +306,13 @@ main {
   height: 100%;
   object-fit: contain;
   display: block;
+  filter:
+    sepia(1)
+    saturate(4)
+    hue-rotate(356deg)
+    brightness(1.02)
+    contrast(1.12)
+    drop-shadow(0 5px 18px rgba(18, 13, 7, 0.45));
 }
 
 .brand-logo-entrance {
@@ -193,15 +321,52 @@ main {
 
 .brand-line {
   margin: 0;
-  font-size: 1.1rem;
+  font-size: clamp(0.84rem, 1.55vw, 1.28rem);
   font-weight: 700;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.016em;
+  color: #f6ead2;
+  line-height: 1.03;
+  text-transform: capitalize;
+  text-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.52),
+    0 1px 0 rgba(255, 234, 197, 0.32);
+}
+
+.shiny-text {
+  display: inline-block;
+  color: transparent;
+  background-image: linear-gradient(
+    var(--shiny-angle, 100deg),
+    var(--shiny-color, #b5b5b5) 0%,
+    var(--shiny-color, #b5b5b5) var(--shiny-start, 49%),
+    var(--shiny-shine, #ffffff) 50%,
+    var(--shiny-color, #b5b5b5) var(--shiny-end, 51%),
+    var(--shiny-color, #b5b5b5) 100%
+  );
+  background-size: 230% 100%;
+  background-position: 200% 0;
+  background-clip: text;
+  -webkit-background-clip: text;
+  animation-name: shinySweep;
+  animation-duration: var(--shiny-speed, 2s);
+  animation-delay: var(--shiny-delay, 0s);
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  animation-direction: var(--shiny-direction, normal);
+  animation-fill-mode: both;
+  animation-play-state: var(--shiny-state, running);
 }
 
 .brand-subline {
-  margin: 0.15rem 0 0;
-  color: var(--text-soft);
-  font-size: 0.78rem;
+  margin: 0.08rem 0 0;
+  color: #ead3b1;
+  font-size: clamp(0.62rem, 0.92vw, 0.82rem);
+  font-weight: 500;
+  letter-spacing: 0.008em;
+  line-height: 1.12;
+  text-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.52),
+    0 0 12px rgba(255, 236, 206, 0.22);
 }
 
 .brand-line-entrance,
@@ -259,19 +424,68 @@ main {
 }
 
 .sound-toggle {
-  border: 1px solid var(--accent);
-  background: #fff9ea;
-  color: var(--accent-strong);
+  position: fixed;
+  right: clamp(0.7rem, 1.6vw, 1.3rem);
+  bottom: clamp(0.7rem, 1.6vw, 1.3rem);
+  z-index: 40;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.52rem;
+  border: 1px solid rgba(252, 223, 176, 0.58);
+  background: rgba(12, 8, 6, 0.74);
+  color: #f6ead2;
   border-radius: 999px;
-  padding: 0.55rem 1rem;
+  padding: 0.42rem 0.82rem 0.42rem 0.42rem;
   cursor: pointer;
-  font-weight: 600;
-  transition: all 220ms ease;
+  font-weight: 700;
+  backdrop-filter: blur(8px);
+  box-shadow:
+    0 10px 24px rgba(0, 0, 0, 0.32),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  transition:
+    transform 220ms ease,
+    box-shadow 220ms ease,
+    background-color 220ms ease,
+    border-color 220ms ease,
+    color 220ms ease;
 }
 
 .sound-toggle.active {
-  background: var(--accent);
-  color: #fff9f0;
+  background: rgba(14, 10, 7, 0.84);
+  border-color: rgba(255, 232, 194, 0.84);
+  color: #fff8eb;
+}
+
+.sound-toggle:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 14px 24px rgba(0, 0, 0, 0.36),
+    inset 0 1px 0 rgba(255, 255, 255, 0.17);
+}
+
+.sound-toggle-lottie {
+  width: 30px;
+  height: 30px;
+  flex: 0 0 auto;
+  pointer-events: none;
+}
+
+.sound-toggle-label {
+  font-size: 0.78rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.sound-toggle:not(.active) {
+  background: rgba(9, 7, 5, 0.54);
+  border-color: rgba(236, 206, 156, 0.36);
+  color: #d8c3a1;
+}
+
+.sound-toggle:not(.active) .sound-toggle-lottie {
+  opacity: 0.55;
+  filter: grayscale(1);
 }
 
 .devotional-audio {
@@ -302,18 +516,30 @@ main {
 
 .hero-tag {
   margin: 0;
-  color: var(--accent-strong);
+  color: #ead8b8;
   font-size: 0.86rem;
   letter-spacing: 0.17em;
   text-transform: uppercase;
   font-weight: 700;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
 }
 
 .hero-title {
   margin: 0.75rem auto 0.9rem;
-  font-size: clamp(2.05rem, 5.2vw, 3.8rem);
-  line-height: 1.05;
+  font-size: clamp(2.6rem, 7.2vw, 5.2rem);
+  line-height: 0.98;
   max-width: 14ch;
+  text-shadow: 0 4px 18px rgba(0, 0, 0, 0.6);
+}
+
+.hero-title-shiny {
+  --shiny-color: #f5ecdf;
+  --shiny-shine: #ffffff;
+  --shiny-speed: 3.5s;
+  --shiny-delay: 0s;
+  --shiny-direction: normal;
+  --shiny-start: 48.6%;
+  --shiny-end: 51.4%;
 }
 
 .hero-title span {
@@ -323,8 +549,9 @@ main {
 .hero p {
   max-width: 64ch;
   margin: 0 auto;
-  color: var(--text-soft);
+  color: #f3e8d6;
   font-size: 1.05rem;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
 }
 
 .hero-actions {
@@ -350,6 +577,7 @@ main {
   transform: translateY(-1px);
   box-shadow: 0 10px 20px rgba(88, 51, 14, 0.08);
 }
+
 
 .hero-entrance .hero-tag,
 .hero-entrance .hero-title span,
@@ -492,6 +720,16 @@ main {
   margin-top: 2.2rem;
 }
 
+.catalog .section-head h2 {
+  color: #f2e7d3;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.42);
+}
+
+.catalog .section-head p {
+  color: #e5d5bd;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
 .section-head h2 {
   margin: 0;
   font-size: clamp(1.45rem, 3vw, 2.1rem);
@@ -502,52 +740,94 @@ main {
   color: var(--text-soft);
 }
 
+.scroll-stack {
+  position: relative;
+}
+
+.scroll-stack-item {
+  position: relative;
+  transform-origin: center top;
+  transition:
+    transform 240ms linear,
+    opacity 240ms linear,
+    filter 240ms linear;
+  will-change: transform, opacity, filter;
+}
+
 .product-grid {
   margin-top: 1.2rem;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.05rem;
+}
+
+.product-grid > .scroll-stack-item {
+  width: 100%;
 }
 
 .product-card {
-  background: rgba(255, 250, 240, 0.9);
+  background: rgba(255, 250, 240, 0.96);
   border: 1px solid var(--line);
-  border-radius: 18px;
+  border-radius: 22px;
   overflow: hidden;
-  box-shadow: 0 8px 22px rgba(103, 64, 24, 0.08);
-  transform: translateY(12px);
-  opacity: 0;
-  animation: riseIn 700ms ease forwards;
+  backdrop-filter: blur(2px);
+  isolation: isolate;
+  box-shadow:
+    0 10px 24px rgba(29, 20, 12, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  transform: none;
+  opacity: 1;
+  animation: none;
+  display: grid;
+  grid-template-columns: minmax(260px, 37%) minmax(0, 1fr);
+  align-items: stretch;
 }
 
-.product-card:nth-child(2) {
-  animation-delay: 70ms;
+.product-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(255, 255, 255, 0.28) 0%, rgba(255, 255, 255, 0) 20%),
+    radial-gradient(circle at 100% 0%, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0) 20%),
+    radial-gradient(circle at 0% 100%, rgba(228, 180, 114, 0.18) 0%, rgba(228, 180, 114, 0) 22%),
+    radial-gradient(circle at 100% 100%, rgba(228, 180, 114, 0.18) 0%, rgba(228, 180, 114, 0) 22%);
+  z-index: 0;
 }
 
-.product-card:nth-child(3) {
-  animation-delay: 120ms;
+.product-card.reverse {
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 37%);
 }
 
-.product-card:nth-child(4) {
-  animation-delay: 170ms;
+.product-card.reverse .product-media {
+  order: 2;
 }
 
-.product-card:nth-child(5) {
-  animation-delay: 220ms;
+.product-card.reverse .product-body {
+  order: 1;
 }
 
-.product-card:nth-child(6) {
-  animation-delay: 270ms;
+.product-media {
+  position: relative;
+  z-index: 1;
 }
 
 .product-card img {
   width: 100%;
-  aspect-ratio: 4 / 3;
+  height: 100%;
+  min-height: 280px;
   object-fit: cover;
+  display: block;
 }
 
 .product-body {
-  padding: 0.95rem 0.95rem 1rem;
+  padding: 1.05rem 1.05rem 1.1rem;
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .meta {
@@ -556,11 +836,13 @@ main {
   font-size: 0.78rem;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+  margin-bottom: 0.5rem;
 }
 
-.product-body h3 {
-  margin: 0.45rem 0;
-  font-size: 1.15rem;
+.product-name {
+  margin: 0;
+  font-size: 1.28rem;
+  line-height: 1.22;
 }
 
 .price {
@@ -570,10 +852,11 @@ main {
 }
 
 .story {
-  margin: 0.72rem 0 0.9rem;
+  margin: 0.72rem 0 0.95rem;
   color: #614c35;
-  font-size: 0.93rem;
+  font-size: 1rem;
   line-height: 1.45;
+  flex: none;
 }
 
 .product-body button,
@@ -589,8 +872,9 @@ main {
 }
 
 .product-body button {
-  width: 100%;
+  width: min(320px, 100%);
   padding: 0.6rem 0.7rem;
+  margin-top: auto;
 }
 
 .cart-inquiry {
@@ -598,6 +882,18 @@ main {
   display: grid;
   grid-template-columns: 0.95fr 1.05fr;
   gap: 1rem;
+}
+
+.cart-inquiry > .scroll-float-panel {
+  height: 100%;
+}
+
+.cart-inquiry > .inquiry-stack {
+  height: 100%;
+}
+
+.inquiry-stack > .scroll-stack-item {
+  height: 100%;
 }
 
 .cart-card,
@@ -1006,6 +1302,19 @@ main {
   }
 }
 
+@keyframes introReveal {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.97);
+    filter: blur(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
 @keyframes backgroundDrift {
   0% {
     background-position:
@@ -1133,22 +1442,41 @@ main {
 }
 
 @media (max-width: 980px) {
-  .product-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .product-card,
+  .product-card.reverse {
+    grid-template-columns: 1fr;
+  }
+
+  .product-card.reverse .product-media,
+  .product-card.reverse .product-body {
+    order: initial;
+  }
+
+  .product-card img {
+    min-height: 240px;
   }
 
   .cart-inquiry {
     grid-template-columns: 1fr;
   }
 
+  .scroll-stack-item {
+    transition-duration: 180ms;
+  }
+
   .topbar {
-    border-radius: 24px;
+    border-radius: 0;
     align-items: flex-start;
     flex-direction: column;
     position: relative;
     top: 0;
     backdrop-filter: none;
-    background: rgba(255, 247, 228, 0.96);
+    background: transparent;
+  }
+
+  .sound-toggle {
+    right: 0.62rem;
+    bottom: 0.62rem;
   }
 }
 
@@ -1181,29 +1509,73 @@ main {
 }
 
 @media (max-width: 620px) {
-  .topbar,
   main {
     width: min(1160px, calc(100% - 1.2rem));
   }
 
+  .topbar {
+    margin-left: 0.18rem;
+  }
+
+  .sound-toggle {
+    padding: 0.4rem;
+  }
+
+  .sound-toggle-label {
+    display: none;
+  }
+
   .brand-line {
-    font-size: 0.95rem;
+    font-size: 0.78rem;
   }
 
   .brand-subline {
-    font-size: 0.72rem;
+    font-size: 0.58rem;
   }
 
   .brand-logo {
-    width: 68px;
-    height: 68px;
+    width: 46px;
+    height: 46px;
   }
 
-  .product-grid {
-    grid-template-columns: 1fr;
+  .product-body {
+    padding: 0.92rem;
+  }
+
+  .product-name {
+    font-size: 1.16rem;
+  }
+
+  .story {
+    font-size: 0.95rem;
+  }
+
+  .product-card img {
+    min-height: 210px;
   }
 
   .inquiry-actions {
     grid-template-columns: 1fr;
+  }
+}
+
+.app .shiny-text {
+  animation-name: shinySweep !important;
+  animation-duration: var(--shiny-speed, 2s) !important;
+  animation-delay: var(--shiny-delay, 0s) !important;
+  animation-timing-function: linear !important;
+  animation-iteration-count: infinite !important;
+  animation-direction: var(--shiny-direction, normal) !important;
+  animation-fill-mode: both !important;
+  animation-play-state: var(--shiny-state, running) !important;
+  animation-composition: replace !important;
+}
+
+@keyframes shinySweep {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
   }
 }
