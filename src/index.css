@@ -57,6 +57,13 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  background: #06050a;
+}
+
+html,
+#root {
+  min-height: 100%;
+  background: #06050a;
 }
 
 h1,
