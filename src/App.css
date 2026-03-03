@@ -32,6 +32,7 @@
   display: block;
   pointer-events: none;
   z-index: 0;
+  background: #06050a;
 }
 
 .silk-background > div {
@@ -42,6 +43,9 @@
 .silk-background canvas {
   width: 100% !important;
   height: 100% !important;
+  background: #06050a;
+  opacity: 0;
+  animation: silkCanvasReveal 220ms ease 90ms forwards;
 }
 
 .site-shell {
@@ -1577,5 +1581,14 @@ main {
   }
   to {
     background-position: -200% 0;
+  }
+}
+
+@keyframes silkCanvasReveal {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
   }
 }

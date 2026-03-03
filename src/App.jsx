@@ -105,6 +105,8 @@ const ownerContactTel = '+919351303138'
 const INTRO_TOTAL_MS = 2600
 const INTRO_BLUR_FADE_MS = 700
 const INTRO_VISIBLE_MS = INTRO_TOTAL_MS - INTRO_BLUR_FADE_MS
+const HERO_TITLE_START_DELAY_MS = INTRO_VISIBLE_MS + INTRO_BLUR_FADE_MS + 120
+const HERO_TITLE_TEXT = 'Every Idol Carries a Story, Not Just a Price'
 const scrollFloatProps = {
   animationDuration: 1,
   ease: 'back.inOut(2)',
@@ -531,6 +533,10 @@ function App() {
     setSoundEnabled((prev) => !prev)
   }
 
+  const handleHeroTitleAnimationComplete = useCallback(() => {
+    console.log('Animation completed!')
+  }, [])
+
   return (
     <div className="app">
       <div className="silk-background" aria-hidden="true">
@@ -597,10 +603,13 @@ function App() {
             <section className="hero">
               <p className="hero-tag">A Sacred Collection from Jaipur Artisans</p>
               <BlurText
-                text="Every Idol Carries a Story, Not Just a Price"
+                text={HERO_TITLE_TEXT}
                 delay={200}
+                startDelay={HERO_TITLE_START_DELAY_MS}
                 animateBy="words"
                 direction="top"
+                forceAnimation
+                onAnimationComplete={handleHeroTitleAnimationComplete}
                 className="hero-title hero-title-shiny"
                 unitClassName="shiny-text"
               />
