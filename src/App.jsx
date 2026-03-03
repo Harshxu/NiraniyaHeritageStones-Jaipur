@@ -141,6 +141,7 @@ function App() {
   const [soundEnabled, setSoundEnabled] = useState(true)
   const [isIntroVisible, setIsIntroVisible] = useState(true)
   const [isIntroExiting, setIsIntroExiting] = useState(false)
+  const [recentlyAddedMap, setRecentlyAddedMap] = useState({})
   const [isSendingInquiry, setIsSendingInquiry] = useState(false)
   const [statusPopup, setStatusPopup] = useState({
     isOpen: false,
@@ -151,6 +152,7 @@ function App() {
   const audioElementRef = useRef(null)
   const soundToggleLottieRef = useRef(null)
   const soundToggleLottieInstanceRef = useRef(null)
+  const addButtonTimeoutsRef = useRef({})
 
   useEffect(() => {
     const startExitId = window.setTimeout(() => {
@@ -164,6 +166,15 @@ function App() {
     return () => {
       window.clearTimeout(startExitId)
       window.clearTimeout(hideIntroId)
+    }
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      Object.values(addButtonTimeoutsRef.current).forEach((timeoutId) => {
+        window.clearTimeout(timeoutId)
+      })
+      addButtonTimeoutsRef.current = {}
     }
   }, [])
 
@@ -341,6 +352,31 @@ function App() {
     }))
   }, [])
 
+  const triggerAddButtonFeedback = useCallback((id) => {
+    setRecentlyAddedMap((prev) => ({
+      ...prev,
+      [id]: true,
+    }))
+
+    const existingTimeoutId = addButtonTimeoutsRef.current[id]
+    if (existingTimeoutId) {
+      window.clearTimeout(existingTimeoutId)
+    }
+
+    addButtonTimeoutsRef.current[id] = window.setTimeout(() => {
+      setRecentlyAddedMap((prev) => {
+        const { [id]: _removed, ...rest } = prev
+        return rest
+      })
+      delete addButtonTimeoutsRef.current[id]
+    }, 360)
+  }, [])
+
+  const handleAddToCart = useCallback((id) => {
+    addToCart(id)
+    triggerAddButtonFeedback(id)
+  }, [addToCart, triggerAddButtonFeedback])
+
   const incrementItem = useCallback((id) => {
     setCart((prev) => ({
       ...prev,
@@ -404,14 +440,18 @@ function App() {
               <h3 className="product-name">{item.name}</h3>
               <p className="price">{inr.format(item.price)}</p>
               <p className="story">{item.story}</p>
-              <button type="button" onClick={() => addToCart(item.id)}>
+              <button
+                type="button"
+                onClick={() => handleAddToCart(item.id)}
+                className={recentlyAddedMap[item.id] ? 'is-added' : ''}
+              >
                 Add To Inquiry Cart
               </button>
             </div>
           </article>
         </ScrollStackItem>
       )),
-    [addToCart],
+    [handleAddToCart, recentlyAddedMap],
   )
 
   const sendInquiryViaFallback = async (payload) => {
