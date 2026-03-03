@@ -1,4 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import lottie from 'lottie-web'
+import BlurText from './BlurText'
+import ScrollFloat from './ScrollFloat'
+import ScrollStack, { ScrollStackItem } from './ScrollStack'
+import Silk from './components/Silk'
 import './App.css'
 
 const DEVOTIONAL_TRACK_SRC = '/devotional-track.mp3'
@@ -97,6 +102,15 @@ const initialCustomer = {
 
 const ownerContactNumber = '+91 93513 03138'
 const ownerContactTel = '+919351303138'
+const INTRO_VISIBLE_MS = 2100
+const INTRO_BLUR_FADE_MS = 700
+const scrollFloatProps = {
+  animationDuration: 1,
+  ease: 'back.inOut(2)',
+  scrollStart: 'center bottom+=50%',
+  scrollEnd: 'bottom bottom-=40%',
+  stagger: 0.03,
+}
 
 function createInquiryMessage(customer, cartItems, subtotal) {
   const lines = cartItems.map(
@@ -122,7 +136,8 @@ function App() {
   const [cart, setCart] = useState({})
   const [customer, setCustomer] = useState(initialCustomer)
   const [soundEnabled, setSoundEnabled] = useState(true)
-  const [introReady, setIntroReady] = useState(false)
+  const [isIntroVisible, setIsIntroVisible] = useState(true)
+  const [isIntroExiting, setIsIntroExiting] = useState(false)
   const [isSendingInquiry, setIsSendingInquiry] = useState(false)
   const [statusPopup, setStatusPopup] = useState({
     isOpen: false,
@@ -131,6 +146,23 @@ function App() {
     isSuccess: true,
   })
   const audioElementRef = useRef(null)
+  const soundToggleLottieRef = useRef(null)
+  const soundToggleLottieInstanceRef = useRef(null)
+
+  useEffect(() => {
+    const startExitId = window.setTimeout(() => {
+      setIsIntroExiting(true)
+    }, INTRO_VISIBLE_MS)
+
+    const hideIntroId = window.setTimeout(() => {
+      setIsIntroVisible(false)
+    }, INTRO_VISIBLE_MS + INTRO_BLUR_FADE_MS)
+
+    return () => {
+      window.clearTimeout(startExitId)
+      window.clearTimeout(hideIntroId)
+    }
+  }, [])
 
   useEffect(() => {
     // Defensive cleanup: if an old deployment injected Tawk, remove it and silence widget sounds.
@@ -155,27 +187,44 @@ function App() {
   }, [])
 
   useEffect(() => {
-    const isCompactViewport = window.matchMedia('(max-width: 820px)').matches
-    if (isCompactViewport) {
-      setIntroReady(true)
+    const container = soundToggleLottieRef.current
+    if (!container) {
       return undefined
     }
 
-    let rafOne = 0
-    let rafTwo = 0
-
-    setIntroReady(false)
-    rafOne = window.requestAnimationFrame(() => {
-      rafTwo = window.requestAnimationFrame(() => {
-        setIntroReady(true)
-      })
+    const instance = lottie.loadAnimation({
+      container,
+      renderer: 'svg',
+      loop: true,
+      autoplay: true,
+      path: '/lottieflow-play-09-ffffff-easey.json',
+      rendererSettings: {
+        preserveAspectRatio: 'xMidYMid meet',
+      },
     })
 
+    instance.setSpeed(0.9)
+    soundToggleLottieInstanceRef.current = instance
+
     return () => {
-      window.cancelAnimationFrame(rafOne)
-      window.cancelAnimationFrame(rafTwo)
+      soundToggleLottieInstanceRef.current = null
+      instance.destroy()
     }
   }, [])
+
+  useEffect(() => {
+    const instance = soundToggleLottieInstanceRef.current
+    if (!instance) {
+      return
+    }
+
+    if (soundEnabled) {
+      instance.play()
+      return
+    }
+
+    instance.pause()
+  }, [soundEnabled])
 
   useEffect(() => {
     const audio = audioElementRef.current
@@ -282,21 +331,21 @@ function App() {
     [cartItems],
   )
 
-  const addToCart = (id) => {
+  const addToCart = useCallback((id) => {
     setCart((prev) => ({
       ...prev,
       [id]: (prev[id] || 0) + 1,
     }))
-  }
+  }, [])
 
-  const incrementItem = (id) => {
+  const incrementItem = useCallback((id) => {
     setCart((prev) => ({
       ...prev,
       [id]: (prev[id] || 0) + 1,
     }))
-  }
+  }, [])
 
-  const decrementItem = (id) => {
+  const decrementItem = useCallback((id) => {
     setCart((prev) => {
       const nextQty = (prev[id] || 0) - 1
       if (nextQty <= 0) {
@@ -308,16 +357,16 @@ function App() {
         [id]: nextQty,
       }
     })
-  }
+  }, [])
 
-  const clearCart = () => {
+  const clearCart = useCallback(() => {
     setCart({})
-  }
+  }, [])
 
-  const handleCustomerChange = (event) => {
+  const handleCustomerChange = useCallback((event) => {
     const { name, value } = event.target
     setCustomer((prev) => ({ ...prev, [name]: value }))
-  }
+  }, [])
 
   const canSendInquiry = cartItems.length > 0 && customer.name.trim() && customer.phone.trim()
 
@@ -336,6 +385,31 @@ function App() {
       isOpen: false,
     }))
   }
+
+  const productCards = useMemo(
+    () =>
+      products.map((item, index) => (
+        <ScrollStackItem key={item.id}>
+          <article className={`product-card ${index % 2 === 1 ? 'reverse' : ''}`}>
+            <div className="product-media">
+              <img src={item.image} alt={item.name} loading="lazy" decoding="async" />
+            </div>
+            <div className="product-body">
+              <p className="meta">
+                {item.category} . {item.stone} . {item.size}
+              </p>
+              <h3 className="product-name">{item.name}</h3>
+              <p className="price">{inr.format(item.price)}</p>
+              <p className="story">{item.story}</p>
+              <button type="button" onClick={() => addToCart(item.id)}>
+                Add To Inquiry Cart
+              </button>
+            </div>
+          </article>
+        </ScrollStackItem>
+      )),
+    [addToCart],
+  )
 
   const sendInquiryViaFallback = async (payload) => {
     const response = await fetch(FORM_SUBMIT_FALLBACK_URL, {
@@ -457,179 +531,200 @@ function App() {
   }
 
   return (
-    <div className={`app ${introReady ? 'intro-ready' : ''}`}>
-      <div className="live-wallpaper" aria-hidden="true">
-        <span className="blend-wave" />
-        <span className="wallpaper-orb orb-one" />
-        <span className="wallpaper-orb orb-two" />
-        <span className="wallpaper-orb orb-three" />
+    <div className="app">
+      <div className="silk-background" aria-hidden="true">
+        <div style={{ width: '100vw', height: '100vh', position: 'relative' }}>
+          <Silk
+            speed={5}
+            scale={1}
+            color="#7B7481"
+            noiseIntensity={1.5}
+            rotation={0}
+          />
+        </div>
       </div>
-      <div className="aura aura-one" />
-      <div className="aura aura-two" />
 
-      <header className="topbar">
-        <div className="brand">
-          <span className="brand-logo brand-logo-entrance">
-            <img src="/pngegg.png" alt="Ganesh logo" />
-          </span>
-          <div>
-            <p className="brand-line brand-line-entrance">Niraniya Heritage Stones - Jaipur</p>
-            <p className="brand-subline brand-subline-entrance">Handcrafted Stone Idols and Sacred Storytelling By Mahendra Niraniya</p>
+      {isIntroVisible && (
+        <section className={`intro-screen ${isIntroExiting ? 'intro-screen-exit' : ''}`} aria-hidden={!isIntroVisible}>
+          <div className="intro-content">
+            <img src="/ganesh_recolored_f5ecdf.png" alt="Niraniya logo" className="intro-logo" />
+            <h1 className="intro-title">Niraniya Heritage Stones - Jaipur</h1>
+            <p className="intro-subtitle">Handcrafted Stone Idols and Sacred Storytelling by Mahendra Niraniya</p>
           </div>
-        </div>
+        </section>
+      )}
+
+      <div className={`site-shell ${isIntroVisible ? 'site-shell-blur' : ''}`}>
+        <ScrollFloat {...scrollFloatProps}>
+          <header className="topbar">
+            <div className="brand">
+              <span className="brand-logo">
+                <img src="/pngegg.png" alt="Ganesh logo" />
+              </span>
+              <div>
+                <h1 className="brand-line">Niraniya Heritage Stones - Jaipur</h1>
+                <p className="brand-subline">Handcrafted Stone Idols and Sacred Storytelling By Mahendra Niraniya</p>
+              </div>
+            </div>
+          </header>
+        </ScrollFloat>
+
+        <div className="devotional-audio" aria-hidden="true">
+          <audio
+            ref={audioElementRef}
+            src={DEVOTIONAL_TRACK_SRC}
+            preload="auto"
+            autoPlay
+            loop
+            playsInline
+          />
+          </div>
+
         <button
-          className={`sound-toggle toggle-entrance ${soundEnabled ? 'active' : ''}`}
-          onClick={toggleSound}
           type="button"
+          className={`sound-toggle ${soundEnabled ? 'active' : ''}`}
+          onClick={toggleSound}
+          aria-label={soundEnabled ? 'Turn devotional sound off' : 'Turn devotional sound on'}
+          title={soundEnabled ? 'Devotional Sound: On' : 'Devotional Sound: Off'}
         >
-          {soundEnabled ? 'Devotional Track: On' : 'Devotional Track: Off'}
+          <span className="sound-toggle-lottie" ref={soundToggleLottieRef} aria-hidden="true" />
+          <span className="sound-toggle-label">{soundEnabled ? 'Devotional Sound On' : 'Devotional Sound Off'}</span>
         </button>
-      </header>
 
-      <div className="devotional-audio" aria-hidden="true">
-        <audio
-          ref={audioElementRef}
-          src={DEVOTIONAL_TRACK_SRC}
-          preload="auto"
-          autoPlay
-          loop
-          playsInline
-        />
-        </div>
+        <main>
+          <ScrollFloat {...scrollFloatProps}>
+            <section className="hero">
+              <p className="hero-tag">A Sacred Collection from Jaipur Artisans</p>
+              <BlurText
+                text="Every Idol Carries a Story, Not Just a Price"
+                delay={200}
+                animateBy="words"
+                direction="top"
+                className="hero-title hero-title-shiny"
+                unitClassName="shiny-text"
+              />
+              <p className="hero-intro">
+                We craft spiritually rooted stone idols where each piece includes a meaningful story to help families
+                connect with devotion, culture, and intention.
+              </p>
+              <div className="hero-actions">
+                <a href="#catalog">Explore Collection</a>
+                <a href="#inquiry">Send Inquiry</a>
+              </div>
+            </section>
+          </ScrollFloat>
 
-      <main>
-        <section className="hero hero-entrance">
-          <p className="hero-tag">A Sacred Collection from Jaipur Artisans</p>
-          <h1 className="hero-title">
-            <span className="title-line-left">Every Idol</span>
-            <span className="title-line-right">Carries a Story,</span>
-            <span className="title-line-left">Not Just a Price</span>
-          </h1>
-          <p className="hero-intro">
-            We craft spiritually rooted stone idols where each piece includes a meaningful story to help families
-            connect with devotion, culture, and intention.
-          </p>
-          <div className="hero-actions">
-            <a href="#catalog">Explore Collection</a>
-            <a href="#inquiry">Send Inquiry</a>
-          </div>
-        </section>
+          <ScrollFloat {...scrollFloatProps}>
+            <section className="promise">
+              <p className="promise-title">About Our Sacred Craft</p>
+              <p className="promise-text">
+                Our sales philosophy: a divine sculpture becomes truly valuable when people know the story, symbolism, and
+                purpose behind it. Every listing below includes that heritage narrative.
+              </p>
+            </section>
+          </ScrollFloat>
 
-        <section className="promise promise-entrance">
-          <p className="promise-title">About Our Sacred Craft</p>
-          <p className="promise-text">
-            Our sales philosophy: a divine sculpture becomes truly valuable when people know the story, symbolism, and
-            purpose behind it. Every listing below includes that heritage narrative.
-          </p>
-        </section>
+          <section className="catalog" id="catalog">
+            <ScrollFloat {...scrollFloatProps}>
+              <div className="section-head">
+                <h2>Featured Stone Idols</h2>
+                <p>Browse, add to cart, and send your inquiry directly on email.</p>
+              </div>
+            </ScrollFloat>
+            <ScrollStack className="product-grid">
+              {productCards}
+            </ScrollStack>
+          </section>
 
-        <section className="catalog" id="catalog">
-          <div className="section-head">
-            <h2>Featured Stone Idols</h2>
-            <p>Browse, add to cart, and send your inquiry directly on email.</p>
-          </div>
-          <div className="product-grid">
-            {products.map((item) => (
-              <article className="product-card" key={item.id}>
-                <img src={item.image} alt={item.name} loading="lazy" />
-                <div className="product-body">
-                  <p className="meta">
-                    {item.category} . {item.stone} . {item.size}
+          <section className="cart-inquiry" id="inquiry">
+            <ScrollFloat {...scrollFloatProps} className="scroll-float-panel">
+              <div className="cart-card">
+                <div className="section-head">
+                  <h2>Your Cart</h2>
+                  <p>{totalItems} item(s) selected for inquiry</p>
+                </div>
+
+                {cartItems.length === 0 ? (
+                  <p className="empty">No idols selected yet. Add items from the collection above.</p>
+                ) : (
+                  <>
+                    <ul className="cart-list">
+                      {cartItems.map((item) => (
+                        <li key={item.id}>
+                          <div>
+                            <p>{item.name}</p>
+                            <span>{inr.format(item.lineTotal)}</span>
+                          </div>
+                          <div className="quantity">
+                            <button type="button" onClick={() => decrementItem(item.id)}>
+                              -
+                            </button>
+                            <strong>{item.quantity}</strong>
+                            <button type="button" onClick={() => incrementItem(item.id)}>
+                              +
+                            </button>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                    <div className="cart-total">
+                      <p>Total Estimate</p>
+                      <strong>{inr.format(subtotal)}</strong>
+                    </div>
+                    <button type="button" className="clear-btn" onClick={clearCart}>
+                      Clear Cart
+                    </button>
+                  </>
+                )}
+              </div>
+            </ScrollFloat>
+
+            <ScrollStack className="inquiry-stack">
+              <ScrollStackItem>
+                <form className="inquiry-card" onSubmit={(event) => event.preventDefault()}>
+                  <div className="section-head">
+                    <h2>Send Inquiry</h2>
+                    <p>We receive your request on email for fast follow-up.</p>
+                  </div>
+
+                  <label htmlFor="name">Full Name</label>
+                  <input id="name" name="name" value={customer.name} onChange={handleCustomerChange} required />
+
+                  <label htmlFor="phone">Phone Number</label>
+                  <input id="phone" name="phone" value={customer.phone} onChange={handleCustomerChange} required />
+
+                  <label htmlFor="city">City</label>
+                  <input id="city" name="city" value={customer.city} onChange={handleCustomerChange} />
+
+                  <label htmlFor="notes">Additional Notes</label>
+                  <textarea
+                    id="notes"
+                    name="notes"
+                    value={customer.notes}
+                    onChange={handleCustomerChange}
+                    rows="4"
+                    placeholder="Share preferred size, stone, timeline, or temple/home use."
+                  />
+
+                  <div className="inquiry-actions">
+                    <button
+                      type="button"
+                      onClick={sendInquiry}
+                      disabled={!canSendInquiry || isSendingInquiry}
+                    >
+                      {isSendingInquiry ? 'Sending...' : 'Send Enquiry'}
+                    </button>
+                  </div>
+
+                  <p className="contact-note">
+                    No redirects. Customer stays on website and receives an email confirmation popup.
                   </p>
-                  <h3>{item.name}</h3>
-                  <p className="price">{inr.format(item.price)}</p>
-                  <p className="story">{item.story}</p>
-                  <button type="button" onClick={() => addToCart(item.id)}>
-                    Add To Inquiry Cart
-                  </button>
-                </div>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        <section className="cart-inquiry" id="inquiry">
-          <div className="cart-card">
-            <div className="section-head">
-              <h2>Your Cart</h2>
-              <p>{totalItems} item(s) selected for inquiry</p>
-            </div>
-
-            {cartItems.length === 0 ? (
-              <p className="empty">No idols selected yet. Add items from the collection above.</p>
-            ) : (
-              <>
-                <ul className="cart-list">
-                  {cartItems.map((item) => (
-                    <li key={item.id}>
-                      <div>
-                        <p>{item.name}</p>
-                        <span>{inr.format(item.lineTotal)}</span>
-                      </div>
-                      <div className="quantity">
-                        <button type="button" onClick={() => decrementItem(item.id)}>
-                          -
-                        </button>
-                        <strong>{item.quantity}</strong>
-                        <button type="button" onClick={() => incrementItem(item.id)}>
-                          +
-                        </button>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-                <div className="cart-total">
-                  <p>Total Estimate</p>
-                  <strong>{inr.format(subtotal)}</strong>
-                </div>
-                <button type="button" className="clear-btn" onClick={clearCart}>
-                  Clear Cart
-                </button>
-              </>
-            )}
-          </div>
-
-          <form className="inquiry-card" onSubmit={(event) => event.preventDefault()}>
-            <div className="section-head">
-              <h2>Send Inquiry</h2>
-              <p>We receive your request on email for fast follow-up.</p>
-            </div>
-
-            <label htmlFor="name">Full Name</label>
-            <input id="name" name="name" value={customer.name} onChange={handleCustomerChange} required />
-
-            <label htmlFor="phone">Phone Number</label>
-            <input id="phone" name="phone" value={customer.phone} onChange={handleCustomerChange} required />
-
-            <label htmlFor="city">City</label>
-            <input id="city" name="city" value={customer.city} onChange={handleCustomerChange} />
-
-            <label htmlFor="notes">Additional Notes</label>
-            <textarea
-              id="notes"
-              name="notes"
-              value={customer.notes}
-              onChange={handleCustomerChange}
-              rows="4"
-              placeholder="Share preferred size, stone, timeline, or temple/home use."
-            />
-
-            <div className="inquiry-actions">
-              <button
-                type="button"
-                onClick={sendInquiry}
-                disabled={!canSendInquiry || isSendingInquiry}
-              >
-                {isSendingInquiry ? 'Sending...' : 'Send Enquiry'}
-              </button>
-            </div>
-
-            <p className="contact-note">
-              No redirects. Customer stays on website and receives an email confirmation popup.
-            </p>
-          </form>
-        </section>
-      </main>
+                </form>
+              </ScrollStackItem>
+            </ScrollStack>
+          </section>
+        </main>
+      </div>
 
       {statusPopup.isOpen && (
         <div className="status-popup-backdrop" role="presentation" onClick={closeStatusPopup}>
