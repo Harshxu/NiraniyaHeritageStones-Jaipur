@@ -1,6 +1,6 @@
 .app {
-  --bg-primary: #fbf5e8;
-  --bg-soft: #f4e7cc;
+  --bg-primary: #07060a;
+  --bg-soft: #100d17;
   --text-main: #2f2318;
   --text-soft: #5f4a2f;
   --accent: #8f4d19;
@@ -8,9 +8,9 @@
   --line: #d4bf95;
   min-height: 100vh;
   background:
-    radial-gradient(circle at 10% 10%, #f8e3b9 0%, transparent 35%),
-    radial-gradient(circle at 92% 78%, #edd4a1 0%, transparent 30%),
-    linear-gradient(160deg, var(--bg-primary) 0%, #fdfaf2 42%, var(--bg-soft) 100%);
+    radial-gradient(circle at 12% 10%, rgba(141, 127, 167, 0.22) 0%, transparent 35%),
+    radial-gradient(circle at 88% 80%, rgba(108, 96, 128, 0.2) 0%, transparent 32%),
+    linear-gradient(160deg, var(--bg-primary) 0%, #0b0912 44%, var(--bg-soft) 100%);
   background-size:
     130% 130%,
     140% 140%,

@@ -102,8 +102,9 @@ const initialCustomer = {
 
 const ownerContactNumber = '+91 93513 03138'
 const ownerContactTel = '+919351303138'
-const INTRO_VISIBLE_MS = 2100
+const INTRO_TOTAL_MS = 2600
 const INTRO_BLUR_FADE_MS = 700
+const INTRO_VISIBLE_MS = INTRO_TOTAL_MS - INTRO_BLUR_FADE_MS
 const scrollFloatProps = {
   animationDuration: 1,
   ease: 'back.inOut(2)',
